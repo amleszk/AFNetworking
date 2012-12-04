@@ -179,7 +179,6 @@ static dispatch_queue_t image_request_operation_processing_queue() {
     CFStringRef imageType = CGImageSourceGetType(source);
     BOOL returnVal = [(__bridge NSString*)imageType isEqualToString:@"com.compuserve.gif"];
     CFRelease(source);
-    CFRelease(imageType);
     return returnVal;
 }
 
