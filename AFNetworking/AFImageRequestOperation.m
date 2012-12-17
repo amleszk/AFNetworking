@@ -162,7 +162,7 @@ static dispatch_queue_t image_request_operation_processing_queue() {
         
         CFDictionaryRef cfFrameProperties = CGImageSourceCopyPropertiesAtIndex(source,i,nil);
         NSDictionary *frameProperties = (__bridge NSDictionary*)cfFrameProperties;
-        NSNumber *delayTimeProp = [[frameProperties objectForKey:@"{GIF}"] objectForKey:@"DelayTime"];
+        NSNumber *delayTimeProp = frameProperties[@"{GIF}"][@"DelayTime"];
         CGFloat delayTime = 0.1f;
         if(delayTimeProp)
             delayTime = [delayTimeProp floatValue];
@@ -171,7 +171,8 @@ static dispatch_queue_t image_request_operation_processing_queue() {
         CFRelease(cfFrameProperties);
     }
     CFRelease(source);
-    return [UIImage animatedImageWithImages:images duration:duration];
+    UIImage * animatedImage = [UIImage animatedImageWithImages:images duration:duration];
+    return animatedImage;
 }
 
 -(BOOL) isGIFImageWithData:(NSData*)imageData {
