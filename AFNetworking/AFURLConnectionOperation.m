@@ -528,22 +528,23 @@ totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite
     }
 }
 
-- (void)connection:(NSURLConnection *)__unused connection 
-didReceiveResponse:(NSURLResponse *)response 
+- (void)connection:(NSURLConnection *)__unused connection didReceiveResponse:(NSURLResponse *)response 
 {
     self.response = response;
     
     [self.outputStream open];
 }
 
-- (void)connection:(NSURLConnection *)__unused connection 
-    didReceiveData:(NSData *)data
+- (void)connection:(NSURLConnection *)__unused connection didReceiveData:(NSData *)data
 {
     self.totalBytesRead += [data length];
     
     if ([self.outputStream hasSpaceAvailable]) {
         const uint8_t *dataBuffer = (uint8_t *) [data bytes];
-        [self.outputStream write:&dataBuffer[0] maxLength:[data length]];
+        NSInteger dataLength = [data length];
+        NSInteger writeLength = [self.outputStream write:&dataBuffer[0] maxLength:dataLength];
+        if(dataLength != writeLength)
+            NSLog(@"Warning, outputstream cannot accept full data. missing %d bytes",dataLength-writeLength);
     }
     
     if (self.downloadProgress) {
