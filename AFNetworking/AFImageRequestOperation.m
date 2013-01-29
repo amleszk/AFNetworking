@@ -21,6 +21,7 @@
 // THE SOFTWARE.
 
 #import "AFImageRequestOperation.h"
+#import <ImageIO/ImageIO.h>
 
 static dispatch_queue_t af_image_request_operation_processing_queue;
 static dispatch_queue_t image_request_operation_processing_queue() {
@@ -144,13 +145,52 @@ static dispatch_queue_t image_request_operation_processing_queue() {
     return self;
 }
 
+#if (__IPHONE_OS_VERSION_MIN_REQUIRED)
 
-#if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
+- (UIImage *)animatedGIFImageWithData:(NSData *)fileData
+{
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFTypeRef)fileData, NULL);
+    size_t count = CGImageSourceGetCount(source);
+    NSMutableArray *images = [NSMutableArray arrayWithCapacity:count];
+    CGFloat duration = 0.;
+    for (size_t i = 0; i < count; ++i) {
+        CGImageRef cgImage = CGImageSourceCreateImageAtIndex(source, i, NULL);
+        if (!cgImage)
+            return nil;
+        [images addObject:[UIImage imageWithCGImage:cgImage]];
+        CGImageRelease(cgImage);
+        
+        CFDictionaryRef cfFrameProperties = CGImageSourceCopyPropertiesAtIndex(source,i,nil);
+        NSDictionary *frameProperties = (__bridge NSDictionary*)cfFrameProperties;
+        NSNumber *delayTimeProp = frameProperties[@"{GIF}"][@"DelayTime"];
+        CGFloat delayTime = 0.1f;
+        if(delayTimeProp)
+            delayTime = [delayTimeProp floatValue];
+        
+        duration += delayTime;
+        CFRelease(cfFrameProperties);
+    }
+    CFRelease(source);
+    UIImage * animatedImage = [UIImage animatedImageWithImages:images duration:duration];
+    return animatedImage;
+}
+
+-(BOOL) isGIFImageWithData:(NSData*)imageData {
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFTypeRef)self.responseData, NULL);
+    CFStringRef imageType = CGImageSourceGetType(source);
+    BOOL returnVal = [(__bridge NSString*)imageType isEqualToString:@"com.compuserve.gif"];
+    CFRelease(source);
+    return returnVal;
+}
+
 - (UIImage *)responseImage {
     if (!_responseImage && [self.responseData length] > 0 && [self isFinished]) {
-        UIImage *image = [UIImage imageWithData:self.responseData];
-
-        self.responseImage = [UIImage imageWithCGImage:[image CGImage] scale:self.imageScale orientation:image.imageOrientation];
+        if([self isGIFImageWithData:self.responseData]) {
+            self.responseImage = [self animatedGIFImageWithData:self.responseData];
+        } else {
+            UIImage *image = [UIImage imageWithData:self.responseData];
+            self.responseImage = [UIImage imageWithCGImage:[image CGImage] scale:self.imageScale orientation:image.imageOrientation];
+        }
     }
 
     return _responseImage;

@@ -551,7 +551,6 @@ didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
     } else {
         if ([challenge previousFailureCount] == 0) {
             NSURLCredential *credential = nil;
-
             NSString *user = [[self.request URL] user];
             NSString *password = [[self.request URL] password];
 
@@ -630,7 +629,10 @@ didReceiveResponse:(NSURLResponse *)response
 
     if ([self.outputStream hasSpaceAvailable]) {
         const uint8_t *dataBuffer = (uint8_t *) [data bytes];
-        [self.outputStream write:&dataBuffer[0] maxLength:[data length]];
+        NSInteger dataLength = [data length];
+        NSInteger writeLength = [self.outputStream write:&dataBuffer[0] maxLength:dataLength];
+        if(dataLength != writeLength)
+            NSLog(@"Warning, outputstream cannot accept full data. missing %d bytes",dataLength-writeLength);
     }
 
     if (self.downloadProgress) {
@@ -715,7 +717,7 @@ didReceiveResponse:(NSURLResponse *)response
     [aCoder encodeObject:self.response forKey:@"response"];
     [aCoder encodeObject:self.error forKey:@"error"];
     [aCoder encodeObject:self.responseData forKey:@"responseData"];
-    [aCoder encodeObject:[NSNumber numberWithLongLong:self.totalBytesRead] forKey:@"totalBytesRead"];
+    [aCoder encodeObject:@(self.totalBytesRead) forKey:@"totalBytesRead"];
 }
 
 #pragma mark - NSCopying
